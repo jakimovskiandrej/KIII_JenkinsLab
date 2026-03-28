@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "yourdockerhubusername/nginx-app"
+    }
+
+    stages {
+        stage('Clone repository') {
+            steps {
+                git 'https://github.com/<username>/<repo>.git'
+            }
+        }
+
+        stage('Build image') {
+            steps {
+                sh 'docker build -t $DOCKER_IMAGE .'
+            }
+        }
+
+        stage('Push image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh '''
+                        echo $PASSWORD | docker login -u $USERNAME --password-stdin
+                        docker push $DOCKER_IMAGE
+                    '''
+                }
+            }
+        }
+    }
+}
