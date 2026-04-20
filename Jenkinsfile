@@ -1,43 +1,26 @@
 pipeline {
-  agent any
-  stages {
-    stage('Clone repository') {
-      steps {
-        checkout scm
-      }
-    }
+    agent any
 
-    stage('Build image') {
-      steps {
-        script {
-          sh "docker build -t ${DOCKER_USER}/kiii-lab:latest ."
+    stages {
+        stage('Clone repository') {
+            steps {
+                git credentialsId: 'github-creds', url: 'https://github.com/jakimovskiandrej/KIII_JenkinsLab.git'
+            }
         }
 
-      }
-    }
-
-    stage('Push image') {
-      steps {
-        script {
-          sh "echo \$DOCKER_HUB_CREDS_PSW | docker login -u \$DOCKER_HUB_CREDS_USR --password-stdin"
-          sh "docker push ${DOCKER_USER}/kiii-lab:latest"
+        stage('Build image') {
+            steps {
+                sh 'docker build -t jakimovskiandrej/kiii-jenkinslab:latest .'
+            }
         }
 
-      }
+        stage('Push image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh 'echo $PASS | docker login -u $USER --password-stdin'
+                    sh 'docker push jakimovskiandrej/kiii-jenkinslab:latest'
+                }
+            }
+        }
     }
-
-  }
-  environment {
-    DOCKER_USER = 'jakimovskiandrej'
-  }
-  post {
-    success {
-      echo 'Апликацијата е успешно изградена и пратена на Docker Hub!'
-    }
-
-    failure {
-      echo 'Процесот не успеа. Провери ги лозинките или лог фајловите.'
-    }
-
-  }
 }
